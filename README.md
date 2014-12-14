@@ -15,9 +15,6 @@ Emscripten系はEmscripten APIを使用。動作確認は em++-1.27.1 。
 - libcurl
     - native 版の libcurlpp が依存
     - 修正BSDライセンス
-- wonderland.log
-    - 試験アプリのロガーとして使用。 `git submodule` で導入可
-    - MITライセンス
 
 ## License
 
