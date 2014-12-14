@@ -34,21 +34,20 @@ namespace wonder_rabbit_project
 
         auto on_load     = [](unsigned handle, void* user_data, void* data, unsigned size)
         {
-          LOG << "load";
           auto promise_ptr = reinterpret_cast< detail::promise_t* >( user_data );
           auto typed_data = reinterpret_cast< std::uint8_t* >( data );
           buffer_t buffer( typed_data, typed_data + size);
           promise_ptr->set_value(std::move(buffer));
           delete promise_ptr;
         };
+        
         auto on_error    = [](unsigned, void*, int, const char*)
         {
-          LOG << "error";
           delete promise_ptr;
         };
+        
         auto on_progress = [](unsigned, void*, int, int)
         {
-          //LOG << "progress";
         };
 
         // async process!
