@@ -41,8 +41,9 @@ namespace wonder_rabbit_project
           delete promise_ptr;
         };
         
-        auto on_error    = [](unsigned, void*, int, const char*)
+        auto on_error    = [](unsigned, void* user_data, int, const char*)
         {
+          auto promise_ptr = reinterpret_cast< detail::promise_t* >( user_data );
           delete promise_ptr;
         };
         
