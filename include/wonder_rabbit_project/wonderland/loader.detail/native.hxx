@@ -5,9 +5,11 @@
 #include <string>
 #include <cstdint>
 
-#include <curlpp/cURLpp.hpp>
-#include <curlpp/Easy.hpp>
-#include <curlpp/Options.hpp>
+#include <Poco/Net/HTTPClientSession.h>
+#include <Poco/Net/HTTPRequest.h>
+#include <Poco/Net/HTTPResponse.h>
+#include <Poco/URI.h>
+#include <Poco/Exception.h>
 
 namespace wonder_rabbit_project
 {
@@ -30,24 +32,31 @@ namespace wonder_rabbit_project
             // temporary buffer
             buffer_t buffer;
             
-            cURLpp::Cleanup cleaner;
-            cURLpp::Easy request;
-            request.setOpt( new cURLpp::Options::Url(url) );
-            request.setOpt
-            ( new cURLpp::Options::WriteFunction
-              ( cURLpp::Types::WriteFunctionFunctor
-                ( [ &buffer ] (char* p, std::size_t size, std::size_t blocks)
-                  {
-                    const auto total_size = size * blocks;
-                    std::copy( p, p + total_size, std::back_inserter(buffer) );
-                    return total_size;
-                  }
-                )
-              )
-            );
+            try
+            {
+              
+              Poco::URI uri( url );
 
-            // it is blocking proccess!
-            request.perform();
+              Poco::Net::HTTPClientSession session( uri.getHost(), uri.getPort() );
+              
+              const auto path = uri.getPathAndQuery();
+              Poco::Net::HTTPRequest request( Poco::Net::HTTPRequest::HTTP_GET, path.empty() ? "/" : path, Poco::Net::HTTPMessage::HTTP_1_1 );
+              
+              session.sendRequest( request );
+              
+              Poco::Net::HTTPResponse response;
+              
+              if ( response.getStatus() != Poco::Net::HTTPResponse::HTTPStatus::HTTP_OK )
+                return buffer;
+              
+              auto& bin = session.receiveResponse( response );
+              std::copy( std::istreambuf_iterator< char >( bin ), std::istreambuf_iterator< char >(), std::back_inserter( buffer ) );
+            }
+            catch( const Poco::Exception& e )
+            {
+              std::cerr << "== Poco Exception ==> " << e.what();
+              throw e;
+            }
 
             return buffer;
           }
