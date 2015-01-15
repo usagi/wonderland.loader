@@ -50,16 +50,23 @@ namespace wonder_rabbit_project
                 Poco::Net::HTTPResponse response;
                 
                 if ( response.getStatus() != Poco::Net::HTTPResponse::HTTPStatus::HTTP_OK )
-                  return buffer;
+                {
+                  std::cerr << "HTTP RESPONSE IS NOT 200 and retry after 30[ms]: " << response.getStatus();
+                  std::this_thread::sleep_for( std::chrono::milliseconds( 30 ) );
+                  continue;
+                }
                 
                 auto& bin = session.receiveResponse( response );
                 std::copy( std::istreambuf_iterator< char >( bin ), std::istreambuf_iterator< char >(), std::back_inserter( buffer ) );
+                
                 break;
               }
               catch( const Poco::Exception& e )
               {
-                std::cerr << "== Poco Exception ==> " << e.what();
+                std::cerr << "Poco Exception and retry after 30[ms]: " << e.what();
                 buffer.clear();
+                std::this_thread::sleep_for( std::chrono::milliseconds( 30 ) );
+                continue;
               }
             }
 
