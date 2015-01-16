@@ -5,11 +5,17 @@
 #include <string>
 #include <cstdint>
 
+#ifndef far
+#  define far
+#endif
 #include <Poco/Net/HTTPClientSession.h>
 #include <Poco/Net/HTTPRequest.h>
 #include <Poco/Net/HTTPResponse.h>
 #include <Poco/URI.h>
 #include <Poco/Exception.h>
+#ifdef far
+#  undef far
+#endif
 
 namespace wonder_rabbit_project
 {
