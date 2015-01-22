@@ -7,18 +7,7 @@
 #include <mutex>
 
 #include <boost/optional.hpp>
-
-#ifndef far
-#  define far
-#endif
-#include <Poco/Net/HTTPClientSession.h>
-#include <Poco/Net/HTTPRequest.h>
-#include <Poco/Net/HTTPResponse.h>
-#include <Poco/URI.h>
-#include <Poco/Exception.h>
-#ifdef far
-#  undef far
-#endif
+#include <boost/network.hpp>
 
 namespace
 {
@@ -83,54 +72,43 @@ namespace wonder_rabbit_project
                 }
                 while ( true );
 
-              int last_response;
+              std::uint16_t last_status = 499u;
 
               for ( const std::string& url : urls )
               {
-                try
                 {
-                  Poco::URI uri( url );
+                  //using current_client = boost::network::http::client;
+                  //*
+                  using current_client = boost::network::http::basic_client
+                    < boost::network::http::tags::http_async_8bit_tcp_resolve
+                    , 1, 1
+                    >;
+                  //*/
 
-                  Poco::Net::HTTPClientSession session( uri.getHost(), uri.getPort() );
+                  current_client::request request( url );
                   
-                  const auto path = uri.getPathAndQuery();
-                  Poco::Net::HTTPRequest request
-                  ( Poco::Net::HTTPRequest::HTTP_GET
-                  , path.empty() ? "/" : path, Poco::Net::HTTPMessage::HTTP_1_1
-                  );
-                  
-                  session.sendRequest( request );
-                  
-                  Poco::Net::HTTPResponse response;
-                  
-                  auto& bin = session.receiveResponse( response );
-                  
-                  last_response = static_cast<int>( response.getStatus() );
+                  request
+                    << boost::network::header( "Connection", "close" )
+                    << boost::network::header( "UserAgent" , "wonderland.loader" )
+                    ;
 
-                  if ( response.getStatus() != Poco::Net::HTTPResponse::HTTPStatus::HTTP_OK )
+                  current_client client;
+                  const auto response = client.get( request );
+
+                  last_status = status( response );
+
+                  if ( last_status != 200u )
                     continue;
-                  
-                  buffer = std::vector<std::uint8_t>();
-                  buffer->reserve( initial_buffer_reserve_size );
-                  
-                  std::copy
-                  ( std::istreambuf_iterator< char >( bin )
-                  , std::istreambuf_iterator< char >()
-                  , std::back_inserter( *buffer )
-                  );
-                  
+
+                  const std::string response_body = body( response );
+                  buffer = std::vector<std::uint8_t>( response_body.cbegin(), response_body.cend() );
+
                   return buffer;
-                }
-                catch( const Poco::Exception& e )
-                {
-                  std::cerr << "Poco Exception and retry after 300[ms]: " << e.what() << " @ "<< url << "\n";
-                  if ( buffer )
-                    buffer = boost::none;
                 }
               }
               
               // 400系エラーはリトライしても意味が無いのでリトライせず終わる
-              if ( static_cast<int>(last_response) >= 400 and static_cast<int>(last_response) < 500 )
+              if ( last_status >= 400u and last_status < 500u )
                 break;
 
               std::this_thread::sleep_for( std::chrono::milliseconds( 300 ) );
