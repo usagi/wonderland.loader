@@ -15,6 +15,17 @@ namespace wonder_rabbit_project
   {
     namespace loader
     {
+      // sugar pattern: url to urls
+      template < class T = void >
+      auto load
+      ( const std::string& url
+      , const bool auto_limit = true
+      , const std::int_fast8_t auto_retry = 3
+      , std::size_t initial_buffer_reserve_size = 1024
+      )
+        -> future_t
+      { return load<T>( std::vector<std::string>( { url } ), auto_limit, auto_retry, initial_buffer_reserve_size ); }
+
       // helper: get a basename from a path
       template < class T = void >
       auto basename(const std::string& path)
