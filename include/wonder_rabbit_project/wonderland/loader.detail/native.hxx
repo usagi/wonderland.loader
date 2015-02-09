@@ -1,3 +1,5 @@
+﻿/// @file native.hxx
+
 #pragma once
 
 #include <future>
@@ -7,16 +9,33 @@
 #include <mutex>
 
 #include <boost/optional.hpp>
+
+#ifdef _WIN32
+#  ifndef far
+#    define far
+#  endif
+#  ifndef near
+#    define near
+#  endif
+#endif
 #include <boost/network.hpp>
+#ifdef _WIN32
+#  ifdef far
+#    undef far
+#  endif
+#  ifdef near
+#    undef near
+#  endif
+#endif
 
 namespace
 {
   // 暫定的に同時接続数制御機構を入れてみる
-#ifdef WONDERLAND_LOADER_AUTO_LIMITS
-  std::array< std::mutex, WONDERLAND_LOADER_AUTO_LIMITS > mutexes;
-#else
+//#ifdef WONDERLAND_LOADER_AUTO_LIMITS
+//  std::array< std::mutex, WONDERLAND_LOADER_AUTO_LIMITS > mutexes;
+//#else
   std::array< std::mutex, 6 > mutexes;
-#endif
+//#endif
 }
 
 namespace wonder_rabbit_project
@@ -44,7 +63,12 @@ namespace wonder_rabbit_project
         , [ urls, auto_limit, auto_retry, initial_buffer_reserve_size ]
           {
             // temporary buffer
+#ifndef _MSC_VER
             buffer_t buffer;
+#else
+            // MSVC++2015 にしても未だラムダ式で有効であるはずの using/typedef のスコープが無視されたままの対応
+            boost::optional<std::vector<std::uint8_t>> buffer;
+#endif
             
             int_fast8_t retry = auto_retry;
             
